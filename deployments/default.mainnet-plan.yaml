@@ -1,0 +1,25 @@
+---
+id: 0
+name: Mainnet deployment
+network: mainnet
+stacks-node: "https://api.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: simple-counter
+            expected-sender: SP9NSDHK5969YF6WJ2MRCVVAVTDENWBNTD67FKWW
+            cost: 2450
+            path: "contracts\\simple-counter.clar"
+            anchor-block-only: true
+            clarity-version: 2
+        - contract-publish:
+            contract-name: streak-tracker
+            expected-sender: SP9NSDHK5969YF6WJ2MRCVVAVTDENWBNTD67FKWW
+            cost: 60130
+            path: "contracts\\streak-tracker.clar"
+            anchor-block-only: true
+            clarity-version: 2
+      epoch: "2.4"

@@ -1,9 +1,6 @@
-import {
-  AppConfig,
-  showConnect,
-  type UserData,
-  UserSession,
-} from "@stacks/connect";
+import { AppConfig, UserSession } from "@stacks/connect";
+import { showConnect } from "@stacks/connect";
+import type { UserData } from "@stacks/connect";
 import { useEffect, useState } from "react";
 
 export function useStacks() {
@@ -24,9 +21,9 @@ export function useStacks() {
         icon: "https://cryptologos.cc/logos/stacks-stx-logo.png",
       },
       onFinish: () => {
-        // reload the webpage when wallet connection succeeds
-        // to ensure that the user session gets populated from local storage
-        window.location.reload();
+        // set the user data when wallet connection succeeds
+        const userData = userSession.loadUserData();
+        setUserData(userData);
       },
       userSession,
     });

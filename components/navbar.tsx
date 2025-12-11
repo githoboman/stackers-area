@@ -1,6 +1,6 @@
 "use client";
 import { useStacks } from "@/hooks/use-stacks";
-import { abbreviateAddress } from "@/lib/stx-utils";
+import { abbreviateAddress } from "@/app/lib/stx-utils";
 import { createAddress } from "@stacks/transactions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
