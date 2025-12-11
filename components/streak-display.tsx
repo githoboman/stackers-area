@@ -1,12 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useStacks } from "@/hooks/use-stacks";
-import { fetchCallReadOnlyFunction, cvToJSON } from "@stacks/transactions";
-import { STACKS_TESTNET } from "@stacks/network";
-import { type UserData } from "@stacks/connect";
+import { 
+  callReadOnlyFunction, 
+  cvToJSON,
+  standardPrincipalCV 
+} from "@stacks/transactions";
+import { StacksTestnet, StacksMainnet } from "@stacks/network";
 
-// Contract details - replace with actual deployed contract address
-const CONTRACT_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"; // placeholder
+// Update with your deployed contract address
+const CONTRACT_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
 const CONTRACT_NAME = "streak-tracker";
 
 interface StreakData {
@@ -14,61 +17,106 @@ interface StreakData {
   longestStreak: number;
   totalCheckIns: number;
   lastCheckIn: number;
+  canCheckInNow: boolean;
 }
 
 export function StreakDisplay() {
-  const { userData } = useStacks();
+  const { stxAddress, isConnected } = useStacks();
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userData) {
-      fetchStreakData(userData);
+    if (isConnected && stxAddress) {
+      fetchStreakData(stxAddress);
     }
-  }, [userData]);
+  }, [isConnected, stxAddress]);
 
-  async function fetchStreakData(user: UserData) {
+  async function fetchStreakData(address: string) {
     setLoading(true);
+    setError(null);
+    
     try {
-      const result = await fetchCallReadOnlyFunction({
+      // Use testnet if address starts with ST, mainnet if SP
+      const network = address.startsWith("ST") 
+        ? new StacksTestnet() 
+        : new StacksMainnet();
+      
+      const result = await callReadOnlyFunction({
         contractAddress: CONTRACT_ADDRESS,
         contractName: CONTRACT_NAME,
         functionName: "get-streak-info",
-        functionArgs: [], // tx-sender is implicit
-        senderAddress: user.profile.stxAddress.mainnet,
-        network: STACKS_TESTNET,
+        functionArgs: [standardPrincipalCV(address)],
+        network,
+        senderAddress: address,
       });
 
       const data = cvToJSON(result);
+      
+      if (data.success && data.value) {
+        setStreakData({
+          currentStreak: Number(data.value["current-streak"]?.value || 0),
+          longestStreak: Number(data.value["longest-streak"]?.value || 0),
+          totalCheckIns: Number(data.value["total-check-ins"]?.value || 0),
+          lastCheckIn: Number(data.value["last-check-in"]?.value || 0),
+          canCheckInNow: data.value["can-check-in-now"]?.value === true,
+        });
+      } else {
+        setStreakData({
+          currentStreak: 0,
+          longestStreak: 0,
+          totalCheckIns: 0,
+          lastCheckIn: 0,
+          canCheckInNow: true,
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching streak data:", err);
+      setError("Failed to load streak data");
       setStreakData({
-        currentStreak: data.value.currentStreak.value,
-        longestStreak: data.value.longestStreak.value,
-        totalCheckIns: data.value.totalCheckIns.value,
-        lastCheckIn: data.value.lastCheckIn.value,
+        currentStreak: 0,
+        longestStreak: 0,
+        totalCheckIns: 0,
+        lastCheckIn: 0,
+        canCheckInNow: true,
       });
-    } catch (error) {
-      console.error("Error fetching streak data:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  if (!userData) return null;
+  if (!isConnected) return null;
 
   return (
-    <div className="flex items-center gap-4 px-4 py-2 bg-yellow-100 border-2 border-black rounded">
+    <div className="brutal-card p-4 bg-[var(--accent-yellow)]">
+      <h3 className="text-lg font-bold mb-2">🔥 YOUR STREAK</h3>
       {loading ? (
-        <span>Loading streak...</span>
+        <div className="text-sm">Loading streak data...</div>
+      ) : error ? (
+        <div className="text-sm text-red-600">{error}</div>
       ) : streakData ? (
-        <>
-          <div className="text-sm">
-            <div>🔥 Current: {streakData.currentStreak}</div>
-            <div>🏆 Best: {streakData.longestStreak}</div>
-            <div>📊 Total: {streakData.totalCheckIns}</div>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="font-bold">Current Streak</div>
+            <div className="text-2xl">{streakData.currentStreak} days</div>
           </div>
-        </>
+          <div>
+            <div className="font-bold">Best Streak</div>
+            <div className="text-2xl">{streakData.longestStreak} days</div>
+          </div>
+          <div>
+            <div className="font-bold">Total Check-ins</div>
+            <div className="text-2xl">{streakData.totalCheckIns}</div>
+          </div>
+          <div>
+            <div className="font-bold">Can Check In?</div>
+            <div className="text-2xl">
+              {streakData.canCheckInNow ? "✅ Yes" : "❌ No"}
+            </div>
+          </div>
+        </div>
       ) : (
-        <span>No streak data</span>
+        <div className="text-sm">No streak data available</div>
       )}
     </div>
   );

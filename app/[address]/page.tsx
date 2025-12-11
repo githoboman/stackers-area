@@ -1,34 +1,28 @@
-import { TransactionsList } from "@/components/txns-list";
-import { fetchAddressTransactions } from "@/app/lib/fetch-address-transactions";
-import { ExternalLinkIcon } from "lucide-react";
-import Link from "next/link";
+"use client";
 
-export default async function Activity({
-  params,
-}: {
-  params: Promise<{ address: string }>;
-}) {
-  // params contains parameters we can parse from the URL Route
-  const { address } = await params;
+import { useStacks } from "@/hooks/use-stacks";
+import { redirect } from "next/navigation";
+import { useEffect } from "react";
 
-  // Once we know the address, we fetch the initial 20 transactions
-  const initialTransactions = await fetchAddressTransactions({ address });
+export default function Home() {
+  const { stxAddress, isConnected } = useStacks();
+
+  useEffect(() => {
+    if (isConnected && stxAddress) {
+      redirect(`/${stxAddress}`);
+    }
+  }, [isConnected, stxAddress]);
 
   return (
-    <main className="flex h-[100vh-4rem] flex-col p-8 gap-8">
-      <div className="flex items-center gap-4">
-        <h1 className="text-3xl font-bold">{address}</h1>
-        <Link
-          href={`https://explorer.hiro.so/address/${address}`}
-          target="_blank"
-          className="rounded-lg flex gap-1 bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          <ExternalLinkIcon className="h-4 w-4" />
-          View on Hiro
-        </Link>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8 md:p-24">
+      <div className="brutal-card p-6 md:p-8 text-center max-w-md w-full">
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 text-[var(--foreground)]">
+          WELCOME
+        </h1>
+        <span className="text-lg md:text-xl text-[var(--foreground)]">
+          Connect your wallet or search for an address
+        </span>
       </div>
-
-      <TransactionsList address={address} transactions={initialTransactions} />
     </main>
   );
 }
